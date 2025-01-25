@@ -1,78 +1,148 @@
 'use client';
 import React, { useState, useEffect } from 'react';
-import { Home } from 'lucide-react';
+import { Home, Moon, Sun, Shuffle, Plus, X, Star, BookOpen, CheckCheck, TriangleAlert } from 'lucide-react';
 import '../cards.css';
+import Timer from '@/components/Timer';
 
-const mockData = [
+const Flashcards = () => {
+  const [mockData, setMockData] = useState([
     { 
         id: 1, 
         question: "What does CPU stand for?", 
-        answer: "Central Processing Unit" 
+        answer: "Central Processing Unit",
+        difficulty: "easy"
     },
     { 
         id: 2, 
         question: "What is the time complexity of binary search?", 
-        answer: "O(log n)" 
+        answer: "O(log n)",
+        difficulty: "difficult"
     },
     { 
         id: 3, 
         question: "What does HTML stand for?", 
-        answer: "HyperText Markup Language" 
+        answer: "HyperText Markup Language",
+        difficulty: "easy"
     },
     { 
         id: 4, 
         question: "What is the main function of an operating system?", 
-        answer: "To manage computer hardware and software resources" 
+        answer: "To manage computer hardware and software resources",
+        difficulty: "normal"
     },
     { 
         id: 5, 
         question: "What is a recursive function?", 
-        answer: "A function that calls itself" 
+        answer: "A function that calls itself",
+        difficulty: "difficult"
     },
     { 
         id: 6, 
         question: "What is polymorphism in object-oriented programming?", 
-        answer: "The ability of different objects to respond to the same method call in different ways" 
+        answer: "The ability of different objects to respond to the same method call in different ways",
+        difficulty: "mastered"
     },
     { 
         id: 7, 
         question: "What is the primary purpose of a database?", 
-        answer: "To store and organize data" 
+        answer: "To store and organize data",
+        difficulty: "easy"
     },
     { 
         id: 8, 
         question: "What is the difference between a stack and a queue?", 
-        answer: "A stack uses LIFO (last in, first out) while a queue uses FIFO (first in, first out)" 
+        answer: "A stack uses LIFO (last in, first out) while a queue uses FIFO (first in, first out)",
+        difficulty: "normal"
     },
     { 
         id: 9, 
         question: "What is the name of the algorithm that finds the shortest path in a graph?", 
-        answer: "Dijkstra's algorithm" 
+        answer: "Dijkstra's algorithm",
+        difficulty: "difficult"
     },
     { 
         id: 10, 
         question: "What does API stand for?", 
-        answer: "Application Programming Interface" 
+        answer: "Application Programming Interface",
+        difficulty: "easy"
     },
     { 
         id: 11, 
         question: "What is the purpose of a firewall in network security?", 
-        answer: "To monitor and control incoming and outgoing network traffic based on predetermined security rules" 
+        answer: "To monitor and control incoming and outgoing network traffic based on predetermined security rules",
+        difficulty: "normal"
     },
     { 
         id: 12, 
         question: "What is the difference between HTTP and HTTPS?", 
-        answer: "HTTPS is the secure version of HTTP, using encryption to secure data transfer" 
+        answer: "HTTPS is the secure version of HTTP, using encryption to secure data transfer",
+        difficulty: "mastered"
     }
-];
+  ]);
 
-const MathFlashcards = () => {
   const [currentCard, setCurrentCard] = useState(0);
   const [isFlipped, setIsFlipped] = useState(false);
   const [isAnimating, setIsAnimating] = useState(false);
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isAddingCard, setIsAddingCard] = useState(false);
+  const [reviewMode, setReviewMode] = useState(false);
+  const [newCard, setNewCard] = useState({ question: '', answer: '' });
+
+  const filteredCards = reviewMode 
+    ? mockData.filter(card => card.difficulty === 'difficult') 
+    : mockData;
+
+  const shuffleCards = () => {
+    const shuffledCards = [...filteredCards]
+      .map(value => ({ value, sort: Math.random() }))
+      .sort((a, b) => a.sort - b.sort)
+      .map(({ value }) => value);
+    setMockData(shuffledCards);
+    setCurrentCard(0);
+    setIsFlipped(false);
+  };
+
+  const toggleDarkMode = () => {
+    setIsDarkMode(!isDarkMode);
+  };
+
+  const handleAddCard = () => {
+    if (newCard.question.trim() && newCard.answer.trim()) {
+      const newCardWithId = {
+        ...newCard,
+        id: mockData.length + 1,
+        difficulty: 'normal'
+      };
+      
+      setMockData(prevCards => [...prevCards, newCardWithId]);
+      setNewCard({ question: '', answer: '' });
+      setIsAddingCard(false);
+    }
+  };
+
+  const updateCardDifficulty = (difficulty) => {
+    const updatedCards = mockData.map(card => 
+      card.id === filteredCards[currentCard].id 
+        ? { ...card, difficulty } 
+        : card
+    );
+    setMockData(updatedCards);
+
+    if (reviewMode && difficulty !== 'difficult') {
+      const newFilteredCards = filteredCards.filter((_, index) => index !== currentCard);
+      
+      if (newFilteredCards.length === 0) {
+        setReviewMode(false);
+        setCurrentCard(0);
+        return;
+      }
+
+      setCurrentCard(prev => prev >= newFilteredCards.length ? newFilteredCards.length - 1 : prev);
+    }
+  };
 
   const handleNext = () => {
-    if (currentCard < mockData.length - 1) {
+    if (currentCard < filteredCards.length - 1) {
       setIsAnimating(true);
       setIsFlipped(false);
       setTimeout(() => {
@@ -105,19 +175,108 @@ const MathFlashcards = () => {
   }, [currentCard, isFlipped]);
 
   return (
-    <div className="flashcard-container">
-      <a href="/" className="home-icon">
-        <Home className="w-8 h-8 text-white hover:scale-110 transition-transform" />
-      </a>
+    <div className={`flashcard-container ${isDarkMode ? 'dark-mode' : ''}`}>
+      {isAddingCard && (
+        <div className="add-card-modal">
+          <div className="add-card-content">
+            <div 
+              className="close-add-card" 
+              onClick={() => setIsAddingCard(false)}
+            >
+              <X size={24} />
+            </div>
+            <h2>Add New Flashcard</h2>
+            <div className="add-card-input">
+              <textarea 
+                placeholder="Enter your question"
+                value={newCard.question}
+                onChange={(e) => setNewCard(prev => ({
+                  ...prev, 
+                  question: e.target.value
+                }))}
+                rows={3}
+              />
+            </div>
+            <div className="add-card-input">
+              <textarea 
+                placeholder="Enter your answer"
+                value={newCard.answer}
+                onChange={(e) => setNewCard(prev => ({
+                  ...prev, 
+                  answer: e.target.value
+                }))}
+                rows={3}
+              />
+            </div>
+            <button 
+              onClick={handleAddCard}
+              className="add-card-button"
+            >
+              Add Card
+            </button>
+          </div>
+        </div>
+      )}
       
+      <div 
+        className="mode-toggle" 
+        onClick={toggleDarkMode}
+      >
+        {isDarkMode ? <Sun size={24} /> : <Moon size={24} />}
+      </div>
+      
+      <div className="top-controls">
+        <a href="/" className="home-icon">
+          <Home className="w-8 h-8 text-white hover:scale-110 transition-transform" />
+        </a>
+        
+        <div 
+          className="shuffle-icon" 
+          onClick={shuffleCards}
+          title="Shuffle Cards"
+        >
+          <Shuffle size={48} />
+        </div>
+
+        <div 
+          className="add-card-icon" 
+          onClick={() => setIsAddingCard(true)}
+          title="Add New Card"
+        >
+          <Plus size={48} />
+        </div>
+
+        <div 
+          className={`review-mode-icon ${reviewMode ? 'active' : ''}`}
+          onClick={() => {
+            if (!reviewMode) {
+              const difficultCards = mockData.filter(card => card.difficulty === 'difficult');
+              if (difficultCards.length > 0) {
+                setReviewMode(true);
+                setCurrentCard(0);
+              } else {
+                alert('No difficult cards to review');
+              }
+            } else {
+              setReviewMode(false);
+              setCurrentCard(0);
+            }
+          }}
+          title="Toggle Review Mode"
+        >
+          <BookOpen size={48} />
+        </div>
+      </div>
+
+      <Timer />
       <div className="progress-container">
         <div className="progress-text">
-          Card {currentCard + 1} of {mockData.length}
+          Card {currentCard + 1} of {filteredCards.length}
         </div>
         <div className="progress-bar">
           <div 
             className="progress-fill"
-            style={{ width: `${((currentCard + 1) / mockData.length) * 100}%` }}
+            style={{ width: `${((currentCard + 1) / filteredCards.length) * 100}%` }}
           />
         </div>
       </div>
@@ -129,12 +288,12 @@ const MathFlashcards = () => {
         <div className="card-inner">
           <div className="card-front">
             <div className="card-content">
-              {mockData[currentCard].question}
+              {filteredCards[currentCard]?.question}
             </div>
           </div>
           <div className="card-back">
             <div className="card-content">
-              {mockData[currentCard].answer}
+              {filteredCards[currentCard]?.answer}
             </div>
           </div>
         </div>
@@ -149,13 +308,32 @@ const MathFlashcards = () => {
         </button>
         <button 
           onClick={handleNext}
-          className={currentCard === mockData.length - 1 ? 'disabled' : ''}
+          className={currentCard === filteredCards.length - 1 ? 'disabled' : ''}
         >
           Next
+        </button>
+      </div>
+
+      <div className="difficulty-buttons">
+        <button 
+          className="difficulty-easy"
+          onClick={() => updateCardDifficulty('mastered')}
+          title="Mark as Mastered"
+        >
+          <CheckCheck size={24} />
+          <span className="difficulty-label">Easy</span>
+        </button>
+        <button 
+          className="difficulty-hard"
+          onClick={() => updateCardDifficulty('difficult')}
+          title="Mark as Difficult"
+        >
+          <TriangleAlert size={24} />
+          <span className="difficulty-label">Difficult</span>
         </button>
       </div>
     </div>
   );
 };
 
-export default MathFlashcards;
+export default Flashcards;
